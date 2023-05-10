@@ -25,6 +25,9 @@ class vec3():
     def __sub__(self, other):
         return vec3(self.x - other.x, self.y - other.y, self.z - other.z)
 
+    def __truediv__(self, other):
+        return vec3(self.x / other, self.y / other, self.z / other)
+
     def dot(self, other):
         return (self.x * other.x) + (self.y * other.y) + (self.z * other.z)
 
@@ -52,7 +55,7 @@ class vec3():
         return r
 
     def cross(self, other):
-        return vec3(self.y*other.z - self.z*self.y, self.z*other.y-self.x*other.z, self.x*other.y-self.y-other.x)
+        return vec3(self.y*other.z - self.z*other.y, self.z*other.x-self.x*other.z, self.x*other.y-self.y*other.x)
 
     def array(self):
         return np.array([self.x, self.y, self.z])
@@ -60,7 +63,7 @@ class vec3():
 
 rgb = vec3
 # (w, h) = (400, 300)        # Screen size
-L = vec3(5, 5, 10)        # Point light position
+L = vec3(5, 7, 5)        # Point light position
 FARAWAY = 1.0e39           # an implausibly huge distance
 
 
@@ -91,13 +94,10 @@ class Sphere:
         self.mirror = mirror
 
     def rotate(self, M):
-
-        v = np.array([self.c.x, self.c.y, self.c.z, 1])
+        v = np.append(self.c.array(), 1)
         newCenter = M @ v
-        x, y, z, w = newCenter[0], newCenter[1], newCenter[2], newCenter[3]
-        v = vec3(x/w, y/w, z/w)
-
-        self.c = v
+        x, y, z, w = newCenter
+        self.c = vec3(x/w, y/w, z/w)
 
     def intersect(self, O, D):
         b = 2 * D.dot(O - self.c)
@@ -145,6 +145,12 @@ class Sphere:
         return color
 
 
+class CheckeredSphere(Sphere):
+    def diffusecolor(self, M):
+        checker = ((M.x * 2).astype(int) % 2) == ((M.z * 2).astype(int) % 2)
+        return self.diffuse * checker
+
+
 class Triangle:
     def __init__(self, pointA: vec3, pointB: vec3, pointC: vec3, diffuse, mirror=0.5):
         self.A = pointA
@@ -152,20 +158,46 @@ class Triangle:
         self.C = pointC
         self.diffuse = diffuse
         self.mirror = mirror
+        self.center = (self.A + self.B + self.C) / 3
+
+    def rotate(self, M):
+
+        vc = np.append(self.center.array(), 1)
+        va = np.append(self.A.array(), 1)
+        vb = np.append(self.B.array(), 1)
+        vc = np.append(self.C.array(), 1)
+
+        # Matrix mit Vektor multiplizieren
+        newCenter = M @ vc
+        # Variablen werden Werte aus Array zugewiesen
+        x, y, z, w = newCenter
+        # neuen Wert setzen - dafür durch w teilen für Umformung von homogenen zu kartesischen Koordinaten
+        self.center = vec3(x/w, y/w, z/w)
+
+        newA = M @ va
+        x, y, z, w = newA
+        self.A = vec3(x/w, y/w, z/w)
+
+        newB = M @ vb
+        x, y, z, w = newB
+        self.B = vec3(x/w, y/w, z/w)
+
+        newC = M @ vc
+        x, y, z, w = newC
+        self.C = vec3(x/w, y/w, z/w)
 
     def intersect(self, O, D: vec3):
+
         u = (self.B - self.A)
         v = (self.C - self.A)
         w = (O - self.A)
-        mult = (1 / (D.cross(v).dot(u)))
-        t = w.cross(u).dot(v) * mult
-        r = D.cross(v).dot(w) * mult
-        s = w.cross(u).dot(D) * mult
+        mult = (1 / ((D.cross(v)).dot(u)))
+        t = ((w.cross(u)).dot(v)) * mult
+        r = ((D.cross(v)).dot(w)) * mult
+        s = ((w.cross(u)).dot(D)) * mult
         pred = (((r + s) <= 1) & (r >= 0) & (r <= 1) & (s <= 1) & (s >= 0))
-        return np.where(pred, t, FARAWAY)
 
-    def rotate(self, M):
-        print()
+        return np.where(pred, t, FARAWAY)
 
     def diffusecolor(self, M):
         return self.diffuse
@@ -202,12 +234,6 @@ class Triangle:
         return color
 
 
-class CheckeredSphere(Sphere):
-    def diffusecolor(self, M):
-        checker = ((M.x * 2).astype(int) % 2) == ((M.z * 2).astype(int) % 2)
-        return self.diffuse * checker
-
-
 class Plane:
     def __init__(self, center, normal, diffuse, mirror=0.5):
         self.center = center
@@ -216,9 +242,10 @@ class Plane:
         self.mirror = mirror
 
     def rotate(self, M):
-        v = np.array([self.center.x, self.center.y, self.center.z, 1])
+
+        v = np.append(self.center.array(), 1)
         newCenter = M @ v
-        x, y, z, w = newCenter[0], newCenter[1], newCenter[2], newCenter[3]
+        x, y, z, w = newCenter
         self.center = vec3(x/w, y/w, z/w)
 
     def intersect(self, O, D):
