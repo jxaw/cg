@@ -12,10 +12,10 @@ class RayTracer:
         self.width = width
         self.height = height
         self.scene = [
-            Sphere(vec3(.5, .1, 0), .4, vec3(1, 0, 0)),
-            Sphere(vec3(0, .9, 0), .4, vec3(0, 0, 1)),
-            Sphere(vec3(-.5, .1, 0), .4, vec3(0, 1, 0)),
-            CheckeredPlane(vec3(0, -1, 0), vec3(0, 1, 0), vec3(1, 1, 1)),
+            Sphere(vec3(.5, .1, -5), .4, vec3(1, 0, 0)),
+            Sphere(vec3(0, .9, -5), .4, vec3(0, 0, 1)),
+            Sphere(vec3(-.5, .1, -5), .4, vec3(0, 1, 0)),
+            #CheckeredPlane(vec3(0, -1, 0), vec3(0, 1, 0), vec3(1, 1, 1)),
             #Triangle(vec3(.5, .1, 1), vec3(0, .9, 1), vec3(-.5, .1, 1))
         ]
 
@@ -35,22 +35,35 @@ class RayTracer:
         c = np.cos(alpha)
         s = np.sin(alpha)
 
+        C = np.array([[1, 0, 0, -self.center.x], [0, 1, 0, -
+                     self.center.y], [0, 0, 1, -self.center.z], [0, 0, 0, 1]])
+        R = np.array([[c, 0, -s, 0], [0, 1, 0, 0],
+                      [s, 0, c, 0], [0, 0, 0, 1]])
+        CI = np.array([[1, 0, 0, self.center.x], [0, 1, 0, self.center.y], [
+                      0, 0, 1, self.center.z], [0, 0, 0, 1]])
+        M = CI @ R @ C
         for e in self.scene:
-            R = np.array([[c, 0, -s], [0, 1, 0], [s, 0, c]])
-            e.rotate(R)
+            e.rotate(M)
 
         self.rendered = test_scene(
             self.width, self.height, self.scene, self.EYE)
         pass
 
     def rotate_neg(self):
+        # die Winkel sind bewusst vertauscht, da die Kameraposition gespiegelt ist
         alpha = np.pi/10
         c = np.cos(alpha)
         s = np.sin(alpha)
 
+        C = np.array([[1, 0, 0, -self.center.x], [0, 1, 0, -
+                     self.center.y], [0, 0, 1, -self.center.z], [0, 0, 0, 1]])
+        R = np.array([[c, 0, -s, 0], [0, 1, 0, 0],
+                      [s, 0, c, 0], [0, 0, 0, 1]])
+        CI = np.array([[1, 0, 0, self.center.x], [0, 1, 0, self.center.y], [
+                      0, 0, 1, self.center.z], [0, 0, 0, 1]])
+        M = CI @ R @ C
         for e in self.scene:
-            R = np.array([[c, 0, -s], [0, 1, 0], [s, 0, c]])
-            e.rotate(R)
+            e.rotate(M)
 
         self.rendered = test_scene(
             self.width, self.height, self.scene, self.EYE)

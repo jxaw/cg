@@ -90,10 +90,14 @@ class Sphere:
         self.diffuse = diffuse
         self.mirror = mirror
 
-    def rotate(self, R):
-        v = np.array([self.c.x, self.c.y, self.c.z])
-        newCenter = R @ v
-        self.c = vec3(newCenter[0], newCenter[1], newCenter[2])
+    def rotate(self, M):
+
+        v = np.array([self.c.x, self.c.y, self.c.z, 1])
+        newCenter = M @ v
+        x, y, z, w = newCenter[0], newCenter[1], newCenter[2], newCenter[3]
+        v = vec3(x/w, y/w, z/w)
+
+        self.c = v
 
     def intersect(self, O, D):
         b = 2 * D.dot(O - self.c)
@@ -151,8 +155,6 @@ class Triangle:
         u = self.B - self.A
         v = self.C - self.A
         w = O - self.A
-
-        mask = np.array([0])
 
         for ele in range(len(D.x)):
 
