@@ -6,7 +6,7 @@ from rt3 import *
 class RayTracer:
 
     def __init__(self, width, height):
-        self.EYE = vec3(0, 0, 5)      # Eye position
+        self.EYE = vec3(0, 1, 5)      # Eye position
         self.UP = vec3(0, 1, 0)
         self.center = vec3(0, 0, -5)
         self.width = width
@@ -16,7 +16,8 @@ class RayTracer:
             Sphere(vec3(0, .9, -5), .4, vec3(0, 0, 1)),
             Sphere(vec3(-.5, .1, -5), .4, vec3(0, 1, 0)),
             CheckeredPlane(vec3(0, -1, 0), vec3(0, 1, 0), vec3(1, 1, 1)),
-            #Triangle(vec3(.5, .1, 1), vec3(0, .9, 1), vec3(-.5, .1, 1))
+            Triangle(vec3(5, -5, -5), vec3(0, 5, -5),
+                     vec3(-5, -5, -5), vec3(1, 1, 1))
         ]
 
         self.rendered = test_scene(

@@ -52,10 +52,10 @@ class vec3():
         return r
 
     def cross(self, other):
-        vx = np.cross(np.array([self.x, self.y, self.z]),
-                      np.array([other.x, other.y, other.z]))
+        return vec3(self.y*other.z - self.z*self.y, self.z*other.y-self.x*other.z, self.x*other.y-self.y-other.x)
 
-        return vec3(vx[0], vx[1], vx[2])
+    def array(self):
+        return np.array([self.x, self.y, self.z])
 
 
 rgb = vec3
@@ -146,30 +146,60 @@ class Sphere:
 
 
 class Triangle:
-    def __init__(self, pointA, pointB, pointC):
+    def __init__(self, pointA: vec3, pointB: vec3, pointC: vec3, diffuse, mirror=0.5):
         self.A = pointA
         self.B = pointB
         self.C = pointC
+        self.diffuse = diffuse
+        self.mirror = mirror
 
     def intersect(self, O, D: vec3):
-        u = self.B - self.A
-        v = self.C - self.A
-        w = O - self.A
+        u = (self.B - self.A)
+        v = (self.C - self.A)
+        w = (O - self.A)
+        mult = (1 / (D.cross(v).dot(u)))
+        t = w.cross(u).dot(v) * mult
+        r = D.cross(v).dot(w) * mult
+        s = w.cross(u).dot(D) * mult
+        pred = (((r + s) <= 1) & (r >= 0) & (r <= 1) & (s <= 1) & (s >= 0))
+        return np.where(pred, t, FARAWAY)
 
-        for ele in range(len(D.x)):
+    def rotate(self, M):
+        print()
 
-            d = vec3(D.x[ele], D.y[ele], D.z[ele])
-            mult = 1 / (d.cross(v)).dot(u)
-            t = (w.cross(u)).dot(v) * mult
-            r = (d.cross(v)).dot(w) * mult
-            s = (w.cross(u)).dot(d) * mult
-            if (r + s) <= 1 and r >= 0 and r <= 1 and s <= 1 and s >= 0:
-                mask = np.append(mask, t)
+    def diffusecolor(self, M):
+        return self.diffuse
 
-            else:
-                mask = np.append(mask, FARAWAY)
-        mask = np.delete(mask, [0])
-        return mask
+    def light(self, O, D, d, scene, EYE, bounce):
+        M = (O + D * d)                         # intersection point
+        N = (self.C-self.A).cross(self.B-self.A)       # normal
+        toL = (L - M).norm()                    # direction to light
+        toO = (EYE - M).norm()                    # direction to ray origin
+        nudged = M + N * .0001                  # M nudged to avoid itself
+
+        # Shadow: find if the point is shadowed or not.
+        # This amounts to finding out if M can see the light
+        light_distances = [s.intersect(nudged, toL) for s in scene]
+        light_nearest = reduce(np.minimum, light_distances)
+        seelight = light_distances[scene.index(self)] == light_nearest
+
+        # Ambient
+        color = rgb(0.05, 0.05, 0.05)
+
+        # Lambert shading (diffuse)
+        lv = np.maximum(N.dot(toL), 0)
+        color += self.diffusecolor(M) * lv * seelight
+
+        # Reflection
+        if bounce < 2:
+            rayD = (D - N * 2 * D.dot(N)).norm()
+            color += raytrace(nudged, rayD, scene, EYE,
+                              bounce + 1) * self.mirror
+
+        # Blinn-Phong shading (specular)
+        phong = N.dot((toL + toO).norm())
+        color += rgb(1, 1, 1) * np.power(np.clip(phong, 0, 1), 50) * seelight
+        return color
 
 
 class CheckeredSphere(Sphere):
