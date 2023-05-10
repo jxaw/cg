@@ -100,8 +100,8 @@ class Ray():
 rgb = vec3
 
 # (w, h) = (400, 300)        # Screen size
-L = vec3(5, 5, -10)        # Point light position
-EYE = vec3(0, 0.1, -1)      # Eye position
+L = vec3(5, 5, 10)        # Point light position
+EYE = vec3(0, 0.1, 5)      # Eye position
 FARAWAY = 1.0e39           # an implausibly huge distance
 
 
@@ -179,10 +179,41 @@ class Sphere:
         return color
 
 
+class Triangle:
+    def __init__(self, pointA, pointB, pointC):
+        self.A = pointA
+        self.B = pointB
+        self.C = pointC
+
+    def intersect(self, O, D: vec3):
+        u = self.B - self.A
+        v = self.C - self.A
+        w = O - self.A
+
+        mask = np.array([0])
+
+        for ele in range(len(D.x)):
+
+            d = vec3(D.x[ele], D.y[ele], D.z[ele])
+            mult = 1 / (d.cross(v)).dot(u)
+            t = (w.cross(u)).dot(v) * mult
+            r = (d.cross(v)).dot(w) * mult
+            s = (w.cross(u)).dot(d) * mult
+            if (r + s) <= 1 and r >= 0 and r <= 1 and s <= 1 and s >= 0:
+                mask = np.append(mask, t)
+
+            else:
+                mask = np.append(mask, FARAWAY)
+        mask = np.delete(mask, [0])
+        return mask
+
+
 class CheckeredSphere(Sphere):
     def diffusecolor(self, M):
-        checker = ((M.x * 2).astype(int) % 2) == ((M.z * 2).astype(int) % 2)
-        return self.diffuse * checker
+        if M.x < 0:
+            checker = ((M.x * 2).astype(int) %
+                       2) == ((M.z * 2).astype(int) % 2)
+            return self.diffuse * checker
 
 
 class Plane:
