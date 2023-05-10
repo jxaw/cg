@@ -185,10 +185,11 @@ class Plane:
         self.diffuse = diffuse
         self.mirror = mirror
 
-    def rotate(self, R):
-        v = np.array([self.center.x, self.center.y, self.center.z])
-        newCenter = R @ v
-        self.center = vec3(newCenter[0], newCenter[1], newCenter[2])
+    def rotate(self, M):
+        v = np.array([self.center.x, self.center.y, self.center.z, 1])
+        newCenter = M @ v
+        x, y, z, w = newCenter[0], newCenter[1], newCenter[2], newCenter[3]
+        self.center = vec3(x/w, y/w, z/w)
 
     def intersect(self, O, D):
         N = self.normal

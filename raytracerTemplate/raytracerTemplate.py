@@ -15,7 +15,7 @@ class RayTracer:
             Sphere(vec3(.5, .1, -5), .4, vec3(1, 0, 0)),
             Sphere(vec3(0, .9, -5), .4, vec3(0, 0, 1)),
             Sphere(vec3(-.5, .1, -5), .4, vec3(0, 1, 0)),
-            #CheckeredPlane(vec3(0, -1, 0), vec3(0, 1, 0), vec3(1, 1, 1)),
+            CheckeredPlane(vec3(0, -1, 0), vec3(0, 1, 0), vec3(1, 1, 1)),
             #Triangle(vec3(.5, .1, 1), vec3(0, .9, 1), vec3(-.5, .1, 1))
         ]
 
