@@ -58,54 +58,13 @@ class vec3():
         return vec3(vx[0], vx[1], vx[2])
 
 
-class Camera():
-    def __init__(self, origin: vec3, center: vec3, up: vec3, fov, ratio):
-        self.O = np.array([origin.x, origin.y, origin.z])
-        self.C = np.array([center.x, center.y, center.z])
-        self.UP = np.array([up.x, up.y, up.z])
-        self.FOV = fov
-        self.R = ratio
-
-        self.F = (self.C-self.O) / np.linalg.norm(self.C - self.O)
-
-        self.S = np.cross(self.F, self.UP) / \
-            np.linalg.norm(np.cross(self.F, self.UP))
-        self.U = np.cross(self.S, self.F)
-        self.alpha = self.FOV / 2
-        self.H = 2 * np.tan(self.alpha)
-        self.W = self.R * self.H
-
-        self.O = vec3(self.O[0], self.O[1], self.O[2])
-        self.C = vec3(self.C[0], self.C[1], self.C[2])
-        self.UP = vec3(self.UP[0], self.UP[1], self.UP[2])
-        self.F = vec3(self.F[0], self.F[1], self.F[2])
-        self.S = vec3(self.S[0], self.S[1], self.S[2])
-        self.U = vec3(self.U[0], self.U[1], self.U[2])
-
-    def generateRay(self, x, y, width, height):
-
-        p = self.F + self.W * ((x / width)-0.5) * self.S + \
-            self.H * ((y / height) - 0.5) * self.U
-        d = p / np.linalg.norm(p)
-        return Ray(self.O, d)
-
-
-class Ray():
-    # direction must be normalized
-    def __init__(self, origin, direction):
-        self.origin = origin
-        self.direction = direction
-
-
 rgb = vec3
-
 # (w, h) = (400, 300)        # Screen size
 L = vec3(5, 5, 10)        # Point light position
-EYE = vec3(0, 0.1, 5)      # Eye position
 FARAWAY = 1.0e39           # an implausibly huge distance
 
 
-def raytrace(O, D, scene, bounce=0):
+def raytrace(O, D, scene, EYE, bounce=0):
     # O is the ray origin, D is the normalized ray direction
     # scene is a list of Sphere objects (see below)
     # bounce is the number of the bounce, starting at zero for camera rays
@@ -119,7 +78,7 @@ def raytrace(O, D, scene, bounce=0):
             dc = extract(hit, d)
             Oc = O.extract(hit)
             Dc = D.extract(hit)
-            cc = s.light(Oc, Dc, dc, scene, bounce)
+            cc = s.light(Oc, Dc, dc, scene, EYE, bounce)
             color += cc.place(hit)
     return color
 
@@ -131,8 +90,10 @@ class Sphere:
         self.diffuse = diffuse
         self.mirror = mirror
 
-    def setCenter(self, p: vec3):
-        self.c = p
+    def rotate(self, R):
+        v = np.array([self.c.x, self.c.y, self.c.z])
+        newCenter = R @ v
+        self.c = vec3(newCenter[0], newCenter[1], newCenter[2])
 
     def intersect(self, O, D):
         b = 2 * D.dot(O - self.c)
@@ -148,7 +109,7 @@ class Sphere:
     def diffusecolor(self, M):
         return self.diffuse
 
-    def light(self, O, D, d, scene, bounce):
+    def light(self, O, D, d, scene, EYE, bounce):
         M = (O + D * d)                         # intersection point
         N = (M - self.c) * (1. / self.r)        # normal
         toL = (L - M).norm()                    # direction to light
@@ -171,7 +132,8 @@ class Sphere:
         # Reflection
         if bounce < 2:
             rayD = (D - N * 2 * D.dot(N)).norm()
-            color += raytrace(nudged, rayD, scene, bounce + 1) * self.mirror
+            color += raytrace(nudged, rayD, scene, EYE,
+                              bounce + 1) * self.mirror
 
         # Blinn-Phong shading (specular)
         phong = N.dot((toL + toO).norm())
@@ -210,10 +172,8 @@ class Triangle:
 
 class CheckeredSphere(Sphere):
     def diffusecolor(self, M):
-        if M.x < 0:
-            checker = ((M.x * 2).astype(int) %
-                       2) == ((M.z * 2).astype(int) % 2)
-            return self.diffuse * checker
+        checker = ((M.x * 2).astype(int) % 2) == ((M.z * 2).astype(int) % 2)
+        return self.diffuse * checker
 
 
 class Plane:
@@ -222,6 +182,11 @@ class Plane:
         self.normal = normal
         self.diffuse = diffuse
         self.mirror = mirror
+
+    def rotate(self, R):
+        v = np.array([self.center.x, self.center.y, self.center.z])
+        newCenter = R @ v
+        self.center = vec3(newCenter[0], newCenter[1], newCenter[2])
 
     def intersect(self, O, D):
         N = self.normal
@@ -233,7 +198,7 @@ class Plane:
     def diffusecolor(self, M):
         return self.diffuse
 
-    def light(self, O, D, d, scene, bounce):
+    def light(self, O, D, d, scene, EYE, bounce):
         M = (O + D * d)                         # intersection point
         N = self.normal                         # normal
         toL = (L - M).norm()                    # direction to light
@@ -256,7 +221,8 @@ class Plane:
         # Reflection
         if bounce < 2:
             rayD = (D - N * 2 * D.dot(N)).norm()
-            color += raytrace(nudged, rayD, scene, bounce + 1) * self.mirror
+            color += raytrace(nudged, rayD, scene, EYE,
+                              bounce + 1) * self.mirror
 
         # Blinn-Phong shading (specular)
         phong = N.dot((toL + toO).norm())
@@ -270,7 +236,7 @@ class CheckeredPlane(Plane):
         return self.diffuse * checker
 
 
-def test_scene(w, h, scene, camera):
+def test_scene(w, h, scene, EYE):
     r = float(w) / h
     # Screen coordinates: x0, y0, x1, y1.
     S = (-1, 1 / r + .25, 1, -1 / r + .25)
@@ -279,9 +245,7 @@ def test_scene(w, h, scene, camera):
     t0 = time.time()
     Q = vec3(x, y, 0)
 
-    # Q-E als array speichern
-    # dieses array transformieren und mitgeben
-    color = raytrace(EYE, (Q - EYE).norm(), scene)
+    color = raytrace(EYE, (Q - EYE).norm(), scene, EYE)
     print("Took", time.time() - t0)
 
     rgb = [Image.fromarray((255 * np.clip(c, 0, 1).reshape((h, w))

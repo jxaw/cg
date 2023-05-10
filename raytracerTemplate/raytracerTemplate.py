@@ -6,19 +6,21 @@ from rt3 import *
 class RayTracer:
 
     def __init__(self, width, height):
+        self.EYE = vec3(0, 0, 5)      # Eye position
         self.UP = vec3(0, 1, 0)
+        self.center = vec3(0, 0, -5)
         self.width = width
         self.height = height
         self.scene = [
             Sphere(vec3(.5, .1, 0), .4, vec3(1, 0, 0)),
             Sphere(vec3(0, .9, 0), .4, vec3(0, 0, 1)),
             Sphere(vec3(-.5, .1, 0), .4, vec3(0, 1, 0)),
-            CheckeredPlane(vec3(-2.75, -3, 3.5), vec3(0, 1, 0), vec3(1, 1, 1)),
+            CheckeredPlane(vec3(0, -1, 0), vec3(0, 1, 0), vec3(1, 1, 1)),
             #Triangle(vec3(.5, .1, 1), vec3(0, .9, 1), vec3(-.5, .1, 1))
         ]
 
         self.rendered = test_scene(
-            self.width, self.height, self.scene, self.camera)
+            self.width, self.height, self.scene, self.EYE)
 
         # TODO: setup your ray tracer
 
@@ -26,25 +28,32 @@ class RayTracer:
         self.width = new_width
         self.height = new_height
         self.rendered = test_scene(
-            self.width, self.height, self.scene, self.camera)
-
-        # TODO: modify scene accordingly
+            self.width, self.height, self.scene, self.EYE)
 
     def rotate_pos(self):
-        alpha = np.pi/3
+        alpha = -np.pi/10
         c = np.cos(alpha)
         s = np.sin(alpha)
 
-        R = np.array([[c, s, 0, 0], [-s, c, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+        for e in self.scene:
+            R = np.array([[c, 0, -s], [0, 1, 0], [s, 0, c]])
+            e.rotate(R)
 
-        # TODO: modify scene accordingly
+        self.rendered = test_scene(
+            self.width, self.height, self.scene, self.EYE)
         pass
 
     def rotate_neg(self):
-        alpha = -np.pi/3
-        print('Taste wurde gedrückt')
+        alpha = np.pi/10
+        c = np.cos(alpha)
+        s = np.sin(alpha)
 
-        # TODO: modify scene accordingly
+        for e in self.scene:
+            R = np.array([[c, 0, -s], [0, 1, 0], [s, 0, c]])
+            e.rotate(R)
+
+        self.rendered = test_scene(
+            self.width, self.height, self.scene, self.EYE)
         pass
 
     def render(self):
