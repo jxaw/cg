@@ -88,20 +88,21 @@ def raytrace(O, D, scene, EYE, bounce=0):
 
 class Sphere:
     def __init__(self, center, r, diffuse, mirror=0.5):
-        self.c = center
+        self.center = center
         self.r = r
         self.diffuse = diffuse
         self.mirror = mirror
 
     def rotate(self, M):
-        v = np.append(self.c.array(), 1)
+        v = np.append(self.center.array(), 1)
         newCenter = M @ v
         x, y, z, w = newCenter
-        self.c = vec3(x/w, y/w, z/w)
+        self.center = vec3(x/w, y/w, z/w)
 
     def intersect(self, O, D):
-        b = 2 * D.dot(O - self.c)
-        c = abs(self.c) + abs(O) - 2 * self.c.dot(O) - (self.r * self.r)
+        b = 2 * D.dot(O - self.center)
+        c = abs(self.center) + abs(O) - 2 * \
+            self.center.dot(O) - (self.r * self.r)
         disc = (b ** 2) - (4 * c)
         sq = np.sqrt(np.maximum(0, disc))
         h0 = (-b - sq) / 2
@@ -115,7 +116,7 @@ class Sphere:
 
     def light(self, O, D, d, scene, EYE, bounce):
         M = (O + D * d)                         # intersection point
-        N = (M - self.c) * (1. / self.r)        # normal
+        N = (M - self.center) * (1. / self.r)        # normal
         toL = (L - M).norm()                    # direction to light
         toO = (EYE - M).norm()                    # direction to ray origin
         nudged = M + N * .0001                  # M nudged to avoid itself

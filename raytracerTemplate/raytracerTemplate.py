@@ -8,25 +8,26 @@ class RayTracer:
     def __init__(self, width, height):
         self.EYE = vec3(0, .1, 5)      # Eye position
         self.UP = vec3(0, 1, 0)
-        self.center = vec3(0, 0, -5)
         self.width = width
         self.height = height
         self.scene = [
-            Sphere(vec3(.5, .1, -5), .4, vec3(1, 0, 0)),
-            Sphere(vec3(0, .9, -5), .4, vec3(0, 0, 1)),
+            Sphere(vec3(.5, .1, -5), .4, vec3(1, 0, 0), 0.7),
+            Sphere(vec3(0, .9, -5), .4, vec3(0, 0, 1), 0.2),
             Sphere(vec3(-.5, .1, -5), .4, vec3(0, 1, 0)),
-            CheckeredPlane(vec3(0, -1, 0), vec3(0, 1, 0), vec3(1, 1, 1)),
-            Triangle(
-                vec3(-.5, .1, -5),
-                vec3(0, .9, -5),
-                vec3(.5, .1, -5),
-                vec3(1, 1, 1), 0)
+            CheckeredPlane(vec3(0, -1, -5), vec3(0, 1, 0), vec3(1, 1, 1)),
+            Triangle(vec3(-.5, .1, -5), vec3(0, .9, -5),
+                     vec3(.5, .1, -5), vec3(1, 1, 1), 0)
         ]
+        self.center = self.getCenter()
 
         self.rendered = test_scene(
             self.width, self.height, self.scene, self.EYE)
 
-        # TODO: setup your ray tracer
+    def getCenter(self):
+        center = self.scene[0].center
+        for i in range(1, len(self.scene)):
+            center += self.scene[i].center
+        return center / len(self.scene)
 
     def resize(self, new_width, new_height):
         self.width = new_width
